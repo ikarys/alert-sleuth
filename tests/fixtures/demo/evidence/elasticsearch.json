@@ -1,0 +1,54 @@
+{
+  "checkout": [
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:40:00Z/2026-02-14T09:49:00Z",
+      "kind": "log_template",
+      "text": "12x GET /checkout/payments failed with status 500",
+      "ref": "service:checkout AND level:error"
+    },
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:41:00Z/2026-02-14T09:48:00Z",
+      "kind": "log_template",
+      "text": "8x Payment provider timeout after <*> ms",
+      "ref": "service:checkout AND level:error"
+    },
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:42:00Z/2026-02-14T09:47:00Z",
+      "kind": "log_template",
+      "text": "5x Checkout session validation failed for user <*>",
+      "ref": "service:checkout AND level:warn"
+    },
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:43:00Z/2026-02-14T09:46:00Z",
+      "kind": "log_template",
+      "text": "3x Database connection pool exhausted",
+      "ref": "service:checkout AND level:error"
+    }
+  ],
+  "payments-api": [
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:41:00Z/2026-02-14T09:48:00Z",
+      "kind": "log_template",
+      "text": "8x POST /payments returned 502",
+      "ref": "service:payments-api AND level:error"
+    },
+    {
+      "prefix": "log",
+      "source": "elasticsearch",
+      "ts": "2026-02-14T09:42:00Z/2026-02-14T09:47:00Z",
+      "kind": "log_template",
+      "text": "4x Upstream payment gateway timeout",
+      "ref": "service:payments-api AND level:warn"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Rapports — alert-sleuth{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Rapports</h1>
+</section>
+
+<form class="filters" action="/reports" method="get">
+  <label>
+    Recherche
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="service ou alerte">
+  </label>
+  <button type="submit" class="btn">Rechercher</button>
+  <a class="btn secondary" href="/reports">Réinitialiser</a>
+</form>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Service</th>
+      <th>Alerte</th>
+      <th>Sévérité</th>
+      <th>Confiance</th>
+      <th>Feedback</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for report in reports %}
+    <tr>
+      <td>{{ report.created_at }}</td>
+      <td>{{ report.service }}</td>
+      <td><a href="/reports/{{ report.id }}">{{ report.alert_id }}</a></td>
+      <td>
+        {% if report.severity %}
+        <span class="chip priority">{{ report.severity }}</span>
+        {% else %}
+        —
+        {% endif %}
+      </td>
+      <td>
+        {% if report.confidence is not none %}
+        {{ "%.1f" | format(report.confidence) | replace(".", ",") }}
+        {% else %}
+        —
+        {% endif %}
+      </td>
+      <td>
+        {% if report.feedback_verdict %}
+        <span class="chip feedback-{{ report.feedback_verdict }}">{{ report.feedback_verdict }}</span>
+        {% else %}
+        —
+        {% endif %}
+      </td>
+      <td><a class="btn small" href="/reports/{{ report.id }}">Ouvrir</a></td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="7">Aucun rapport</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

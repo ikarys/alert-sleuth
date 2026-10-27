@@ -1,0 +1,20 @@
+{
+  "checkout": [
+    {
+      "prefix": "dep",
+      "source": "argocd",
+      "ts": "2026-02-14T09:41:00Z",
+      "kind": "deploy",
+      "text": "deploy id=1042 revision=v41-9f8e7d6c",
+      "ref": "argocd app history checkout"
+    },
+    {
+      "prefix": "hlt",
+      "source": "argocd",
+      "ts": "2026-02-14T09:45:00Z",
+      "kind": "argocd_status",
+      "text": "health=Healthy sync=Synced",
+      "ref": "argocd app get checkout"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "checkout": [
+    {
+      "prefix": "met",
+      "source": "victoriametrics",
+      "ts": "2026-02-14T09:10:00Z/2026-02-14T09:50:00Z",
+      "kind": "latency_p95",
+      "text": "latency_p95 peak 1.85 vs baseline 0.32 (x5.78)",
+      "ref": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"checkout\",namespace=\"checkout\"}[5m])) by (le))"
+    },
+    {
+      "prefix": "met",
+      "source": "victoriametrics",
+      "ts": "2026-02-14T09:10:00Z/2026-02-14T09:50:00Z",
+      "kind": "error_rate",
+      "text": "error_rate peak 0.042 vs baseline 0.003 (x14.0)",
+      "ref": "sum(rate(http_requests_total{service=\"checkout\",namespace=\"checkout\",status=~\"5..\"}[5m]))"
+    }
+  ],
+  "payments-api": [
+    {
+      "prefix": "met",
+      "source": "victoriametrics",
+      "ts": "2026-02-14T09:10:00Z/2026-02-14T09:50:00Z",
+      "kind": "error_rate",
+      "text": "error_rate peak 0.031 vs baseline 0.004 (x7.75)",
+      "ref": "sum(rate(http_requests_total{service=\"payments-api\",namespace=\"payments-api\",status=~\"5..\"}[5m]))"
+    }
+  ]
+}

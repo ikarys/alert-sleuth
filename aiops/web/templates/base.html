@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}alert-sleuth{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    function copyRef(button) {
+      var text = button.getAttribute("data-copy") || "";
+      try {
+        navigator.clipboard.writeText(text);
+        button.textContent = "Copié";
+        setTimeout(function () {
+          button.textContent = "Copier";
+        }, 1500);
+      } catch (err) {
+        button.textContent = "Échec";
+        setTimeout(function () {
+          button.textContent = "Copier";
+        }, 1500);
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/alerts">alert-sleuth</a>
+      <nav class="tabs">
+        <a class="tab {% if active == 'alerts' %}active{% endif %}" href="/alerts">Alertes</a>
+        <a class="tab {% if active == 'reports' %}active{% endif %}" href="/reports">Rapports</a>
+        <a class="tab {% if active == 'quality' %}active{% endif %}" href="/quality">Qualité des données</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

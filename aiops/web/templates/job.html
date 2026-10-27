@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Job — alert-sleuth{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Job</h1>
+</section>
+
+<div class="card">
+  <p>
+    Kind : <code>{{ job.kind }}</code>
+    — Cible : <code>{{ job.target }}</code>
+  </p>
+  <p>
+    Statut : <span class="chip status-{{ job.status }}">{{ job.status }}</span>
+  </p>
+  {% include "_job_status.html" %}
+</div>
+{% endblock %}

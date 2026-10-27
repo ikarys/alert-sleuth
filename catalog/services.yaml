@@ -1,0 +1,151 @@
+services:
+  - name: checkout
+    owner: "payments-core"
+    env: "prod"
+    criticality: "critical"
+    ops:
+      opsgenie_service_tag: "service:checkout"
+      runbook: "https://runbooks.example.com/checkout"
+    argocd:
+      app: "checkout"
+    kubernetes:
+      namespace: "checkout"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:checkout"
+    victoriametrics:
+      labels:
+        service: "checkout"
+        namespace: "checkout"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/checkout-prod/providers/Microsoft.Web/sites/checkout"
+  - name: payments-api
+    owner: "payments-core"
+    env: "prod"
+    criticality: "critical"
+    ops:
+      opsgenie_service_tag: "service:payments-api"
+      runbook: "https://runbooks.example.com/payments-api"
+    argocd:
+      app: "payments-api"
+    kubernetes:
+      namespace: "payments"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:payments-api"
+    victoriametrics:
+      labels:
+        service: "payments-api"
+        namespace: "payments"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/payments-prod/providers/Microsoft.Web/sites/payments-api"
+  - name: auth
+    owner: "identity-platform"
+    env: "prod"
+    criticality: "high"
+    ops:
+      opsgenie_service_tag: "service:auth"
+      runbook: "https://runbooks.example.com/auth"
+    argocd:
+      app: "auth"
+    kubernetes:
+      namespace: "identity"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:auth"
+    victoriametrics:
+      labels:
+        service: "auth"
+        namespace: "identity"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/identity-prod/providers/Microsoft.Web/sites/auth"
+  - name: orders
+    owner: "commerce-platform"
+    env: "prod"
+    criticality: "high"
+    ops:
+      opsgenie_service_tag: "service:orders"
+      runbook: "https://runbooks.example.com/orders"
+    argocd:
+      app: "orders"
+    kubernetes:
+      namespace: "commerce"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:orders"
+    victoriametrics:
+      labels:
+        service: "orders"
+        namespace: "commerce"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/commerce-prod/providers/Microsoft.Web/sites/orders"
+  - name: search
+    owner: "discovery"
+    env: "staging"
+    criticality: "medium"
+    ops:
+      opsgenie_service_tag: "service:search"
+      runbook: "https://runbooks.example.com/search"
+    argocd:
+      app: "search"
+    kubernetes:
+      namespace: "discovery"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:search"
+    victoriametrics:
+      labels:
+        service: "search"
+        namespace: "discovery"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/discovery-staging/providers/Microsoft.Web/sites/search"
+  - name: notifications
+    owner: "messaging"
+    env: "staging"
+    criticality: "low"
+    ops:
+      opsgenie_service_tag: "service:notifications"
+      runbook: "https://runbooks.example.com/notifications"
+    argocd:
+      app: "notifications"
+    kubernetes:
+      namespace: "messaging"
+    elasticsearch:
+      index_pattern: "logs-2026.02.14"
+      query: "service:notifications"
+    victoriametrics:
+      labels:
+        service: "notifications"
+        namespace: "messaging"
+      queries:
+        error_rate: 'sum(rate(http_requests_total{selector},status=~"5..")[5m]))'
+        latency_p95: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{selector}[5m])) by (le))'
+        cpu: 'sum(rate(container_cpu_usage_seconds_total{selector}[5m]))'
+    azure:
+      resource_ids:
+        - "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/messaging-staging/providers/Microsoft.Web/sites/notifications"

@@ -1,6 +1,6 @@
 # alert-sleuth : Assistant AIOps en lecture seule
 
-Statut : phase de conception. Seule la documentation existe ; pas encore de code.
+Statut : v1 expérimentale. Pipeline complet (ingestion, triage, collecte, analyse LLM, rapports, UI web) fonctionnel en mode démo ; pas encore éprouvé sur des sources réelles. L'agent d'investigation (boucle d'outils) n'est pas encore implémenté.
 
 `alert-sleuth` est un assistant AIOps en lecture seule pour une équipe SRE. Il réduit la fatigue d'alerte et accélère l'investigation manuelle en transformant les alertes brutes en rapports d'incident classés et étayés par des preuves. Il ingère les alertes, les regroupe et les évalue, collecte des preuves corrélées et produit des rapports structurés qui citent les preuves utilisées.
 
@@ -12,6 +12,19 @@ flowchart LR
   D --> E["rapport LLM"]
   E --> F["reports/"]
 ```
+
+## Démarrage rapide
+
+Prérequis : [uv](https://docs.astral.sh/uv/), [just](https://just.systems/), un endpoint LLM compatible OpenAI (par défaut `http://127.0.0.1:8000/v1`).
+
+```bash
+just install      # uv sync
+just dev          # instance de dev sur données de démo : http://127.0.0.1:8080
+just test         # tests
+just              # liste des recettes
+```
+
+Configuration par variables d'environnement (ou fichier `.env`) : `OPSGENIE_API_KEY`, `ES_URL`/`ES_USER`/`ES_PASSWORD`, `VM_URL`, `ARGOCD_SERVER`/`ARGOCD_AUTH_TOKEN`, session `az login`, `AIOPS_LLM_URL`/`AIOPS_LLM_MODEL`, `AIOPS_DB`, `AIOPS_DEMO=1`. Voir `aiops/config.py`.
 
 ## Phases
 
@@ -32,7 +45,7 @@ flowchart LR
 - Explicabilité d'abord : pas de triage boîte noire au démarrage à froid ; règles pondérées et preuves enregistrées.
 - Stockage local d'abord : SQLite pour les alertes, rapports, instantanés de preuves et feedback.
 
-## CLI prévu
+## CLI
 
 ```text
 aiops fetch
@@ -75,7 +88,7 @@ aiops report <id>
 - Jeu de données de feedback étiqueté.
 - Triage ML ou clustering optionnel une fois que les données étiquetées le justifient.
 
-## Arborescence du dépôt prévue
+## Arborescence du dépôt
 
 ```text
 aiops/

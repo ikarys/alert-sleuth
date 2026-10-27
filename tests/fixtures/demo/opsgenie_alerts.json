@@ -1,0 +1,139 @@
+{
+  "data": [
+    {
+      "id": "alert-checkout-p1-001",
+      "alias": "checkout-p1-latency-001",
+      "message": "Checkout latency above threshold",
+      "priority": "P1",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:checkout",
+        "env:prod",
+        "team:payments",
+        "component:web"
+      ],
+      "count": 12,
+      "createdAt": "2026-02-14T09:40:00Z",
+      "updatedAt": "2026-02-14T09:44:00Z"
+    },
+    {
+      "id": "alert-checkout-p1-002",
+      "alias": "checkout-p1-errors-002",
+      "message": "Checkout payment errors increasing",
+      "priority": "P1",
+      "status": "acknowledged",
+      "acknowledged": true,
+      "tags": [
+        "service:checkout",
+        "env:prod",
+        "team:payments",
+        "component:payments"
+      ],
+      "count": 3,
+      "createdAt": "2026-02-14T09:43:00Z",
+      "updatedAt": "2026-02-14T09:45:00Z"
+    },
+    {
+      "id": "alert-payments-p2-001",
+      "alias": "payments-api-p2-001",
+      "message": "Payments API 5xx rate high",
+      "priority": "P2",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:payments-api",
+        "env:prod",
+        "team:payments",
+        "component:api"
+      ],
+      "count": 8,
+      "createdAt": "2026-02-14T09:41:00Z",
+      "updatedAt": "2026-02-14T09:46:00Z"
+    },
+    {
+      "id": "alert-search-p3-001",
+      "alias": "search-p3-001",
+      "message": "Search index latency elevated",
+      "priority": "P3",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:search",
+        "env:staging",
+        "team:search",
+        "component:search"
+      ],
+      "count": 2,
+      "createdAt": "2026-02-14T09:42:00Z",
+      "updatedAt": "2026-02-14T09:47:00Z"
+    },
+    {
+      "id": "alert-auth-p2-001",
+      "alias": "auth-p2-001",
+      "message": "Auth token validation failures",
+      "priority": "P2",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:auth",
+        "env:prod",
+        "team:identity",
+        "component:auth"
+      ],
+      "count": 10,
+      "createdAt": "2026-02-14T09:44:00Z",
+      "updatedAt": "2026-02-14T09:48:00Z"
+    },
+    {
+      "id": "alert-orders-p3-001",
+      "alias": "orders-p3-001",
+      "message": "Order creation retries increased",
+      "priority": "P3",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:orders",
+        "env:prod",
+        "team:orders",
+        "component:orders"
+      ],
+      "count": 6,
+      "createdAt": "2026-02-14T09:45:00Z",
+      "updatedAt": "2026-02-14T09:49:00Z"
+    },
+    {
+      "id": "alert-notifications-p4-001",
+      "alias": "notifications-p4-001",
+      "message": "Notification queue lag",
+      "priority": "P4",
+      "status": "open",
+      "acknowledged": false,
+      "tags": [
+        "service:notifications",
+        "env:staging",
+        "component:email"
+      ],
+      "count": 1,
+      "createdAt": "2026-02-14T09:46:00Z",
+      "updatedAt": "2026-02-14T09:50:00Z"
+    },
+    {
+      "id": "alert-checkout-closed-001",
+      "alias": "checkout-closed-001",
+      "message": "Checkout database connection pool exhausted",
+      "priority": "P3",
+      "status": "closed",
+      "acknowledged": true,
+      "tags": [
+        "service:checkout",
+        "env:prod",
+        "team:payments",
+        "component:database"
+      ],
+      "count": 2,
+      "createdAt": "2026-02-14T09:35:00Z",
+      "updatedAt": "2026-02-14T09:38:00Z"
+    }
+  ]
+}

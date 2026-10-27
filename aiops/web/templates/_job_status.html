@@ -1,0 +1,45 @@
+{% set running = job.status == 'running' %}
+<div
+  id="job-status"
+  class="job-status"
+  {% if running %}hx-get="/jobs/{{ job.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}
+>
+  {% if job.status == 'error' %}
+  <div class="callout error">
+    Erreur : {{ job.error }}
+  </div>
+  {% endif %}
+
+  <table class="table steps">
+    <thead>
+      <tr>
+        <th>Étape</th>
+        <th>Statut</th>
+        <th>Détail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for step in job.steps %}
+      <tr>
+        <td>{{ step.name }}</td>
+        <td><span class="chip status-{{ step.status }}">{{ step.status }}</span></td>
+        <td>{{ step.detail }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3">Aucune étape</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if job.status in ('done', 'error') %}
+  <p class="job-link">
+    {% if job.status == 'done' and job.kind == 'analyze' and job.result %}
+    <a class="btn" href="/reports/{{ job.result }}">Voir le rapport</a>
+    {% else %}
+    <a class="btn" href="/alerts">Retour aux alertes</a>
+    {% endif %}
+  </p>
+  {% endif %}
+</div>

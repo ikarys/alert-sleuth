@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Qualité des données — alert-sleuth{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Qualité des données</h1>
+</section>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Indicateur</th>
+      <th>Valeur</th>
+      <th>Objectif</th>
+      <th>Statut</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.indicator }}</td>
+      <td>
+        {% if row.value is not none %}
+        {{ row.value | round(2) }}%
+        {% else %}
+        n/a
+        {% endif %}
+      </td>
+      <td>{{ row.target | round(0) }}%</td>
+      <td><span class="chip status-{{ row.status }}">{{ row.status }}</span></td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="4">Aucun indicateur</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Rapport {{ report.get('id') }} — alert-sleuth{% endblock %}
+
+{% block content %}
+{% macro evidence_chips(value) %}
+  {% if value is string %}
+  <a class="chip evidence" href="#ev-{{ value }}">{{ value }}</a>
+  {% elif value is sequence %}
+    {% for item in value %}
+      {% if item is string %}
+      <a class="chip evidence" href="#ev-{{ item }}">{{ item }}</a>
+      {% elif item is mapping %}
+        {% set eid = item.get('id') %}
+        {% if eid %}
+        <a class="chip evidence" href="#ev-{{ eid }}">{{ eid }}</a>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endmacro %}
+
+{% set r = report.get('report') if report.get('report') is mapping else {} %}
+{% set pc = r.get('probable_cause') if r.get('probable_cause') is mapping else {} %}
+{% set service_info = r.get('service') if r.get('service') is mapping else {} %}
+{% set severity_assessment = r.get('severity_assessment') %}
+
+<section class="page-header">
+  <div>
+    <h1>Rapport — {{ report.get('service') or service_info.get('name') or 'service inconnu' }}</h1>
+    <div class="meta">
+      <span>Alerte : <code>{{ report.get('alert_id') }}</code></span>
+      {% set sa = severity_assessment if severity_assessment is mapping else {} %}
+      {% if sa.get('level') %}
+      <span class="chip severity-{{ sa.get('level') }}">{{ sa.get('level') }}</span>
+      {% endif %}
+      {% if sa.get('reason') %}
+      <span class="reason">{{ sa.get('reason') }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="actions">
+    <form action="/reports/{{ report.get('id') }}/regenerate" method="post" class="inline-form">
+      <button type="submit" class="btn">Régénérer</button>
+    </form>
+  </div>
+</section>
+
+{% if notice == 'feedback' %}
+<div class="notice">Retour enregistré</div>
+{% endif %}
+
+{% if missing %}
+<div class="callout warning">
+  Preuves manquantes : {{ missing | join(', ') }}
+</div>
+{% endif %}
+
+{% if unverified %}
+<div class="callout warning">
+  Identifiants de preuves non vérifiés : {{ unverified | join(', ') }}
+</div>
+{% endif %}
+
+
+<section class="card">
+  <h2>Résumé</h2>
+  <p>{{ r.get('summary') or 'Aucun résumé.' }}</p>
+</section>
+
+<section class="card">
+  <h2>Cause probable</h2>
+  <p>{{ pc.get('text') or pc.get('cause') or pc.get('description') or 'Cause inconnue.' }}</p>
+  {% if confidence is not none %}
+  {% set pct = (confidence * 100) | int %}
+  <div class="confidence">
+    <div class="bar">
+      <div class="bar-fill" style="width: {{ pct }}%"></div>
+    </div>
+    <span>Confiance : {{ "%.1f" | format(confidence) | replace(".", ",") }}</span>
+  </div>
+  {% endif %}
+  <div class="chips">
+    {% if pc.get('evidence') %}
+    {{ evidence_chips(pc.get('evidence')) }}
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Timeline</h2>
+  <ul class="timeline">
+    {% for event in timeline %}
+    {% if event is mapping %}
+    {% set ts = event.get('ts') or event.get('timestamp') or event.get('time') or '' %}
+    {% set description = event.get('description') or event.get('text') or event.get('event') or '' %}
+    <li>
+      <strong>{{ ts }}</strong>
+      {{ description }}
+      <div class="chips">
+        {% if event.get('evidence') %}
+        {{ evidence_chips(event.get('evidence')) }}
+        {% endif %}
+      </div>
+    </li>
+    {% else %}
+    <li>{{ event }}</li>
+    {% endif %}
+    {% else %}
+    <li>Aucune timeline.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Hypothèses</h2>
+  <ul class="timeline">
+    {% for hypothesis in hypotheses %}
+    {% if hypothesis is mapping %}
+    {% set text = hypothesis.get('text') or hypothesis.get('hypothesis') or hypothesis.get('description') or '' %}
+    {% set would_confirm = hypothesis.get('would_confirm') %}
+    <li>
+      {{ text }}
+      {% if would_confirm %}
+      <span class="muted"> — pour confirmer : {{ would_confirm }}</span>
+      {% endif %}
+      <div class="chips">
+        {% if hypothesis.get('evidence') %}
+        {{ evidence_chips(hypothesis.get('evidence')) }}
+        {% endif %}
+      </div>
+    </li>
+    {% else %}
+    <li>{{ hypothesis }}</li>
+    {% endif %}
+    {% else %}
+    <li>Aucune hypothèse.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Actions immédiates</h2>
+  <ul class="actions-list">
+    {% for action in actions %}
+    {% if action is mapping %}
+    {% set text = action.get('action') or action.get('text') or action.get('description') or '' %}
+    {% set risk = action.get('risk') or action.get('risque') or 'inconnu' %}
+    {% set runbook = action.get('runbook') or service_info.get('runbook') %}
+    <li>
+      <div class="action-text">{{ text }}</div>
+      <div class="chips">
+        <span class="chip risk-{{ risk | replace(' ', '-') }}">
+          {{ risk }}
+        </span>
+        {% if runbook %}
+        <a class="chip runbook" href="{{ runbook }}" target="_blank" rel="noopener">runbook</a>
+        {% endif %}
+        {% if action.get('evidence') %}
+        {{ evidence_chips(action.get('evidence')) }}
+        {% endif %}
+      </div>
+      <p class="note">Suggestion : à exécuter par un humain, jamais par alert-sleuth</p>
+    </li>
+    {% else %}
+    <li>{{ action }}</li>
+    {% endif %}
+    {% else %}
+    <li>Aucune action immédiate.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Améliorations</h2>
+  <ul class="timeline">
+    {% for improvement in improvements %}
+    {% if improvement is mapping %}
+    {% set category = improvement.get('category') or improvement.get('categorie') or 'général' %}
+    {% set text = improvement.get('text') or improvement.get('improvement') or improvement.get('description') or '' %}
+    <li>
+      <span class="chip category">{{ category }}</span>
+      {{ text }}
+    </li>
+    {% else %}
+    <li>{{ improvement }}</li>
+    {% endif %}
+    {% else %}
+    <li>Aucune amélioration.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Preuves</h2>
+  <div class="evidence-list">
+    {% for item in evidence %}
+    {% if item is mapping %}
+    {% set eid = item.get('id') %}
+    <section id="ev-{{ eid }}" class="evidence-item">
+      <div class="evidence-head">
+        <span class="chip evidence">{{ eid }}</span>
+        <span class="chip source">{{ item.get('source') }}</span>
+        <span class="muted">{{ item.get('ts') }}</span>
+      </div>
+      <p>{{ item.get('text') }}</p>
+      {% if item.get('ref') %}
+      <div class="ref">
+        <code>{{ item.get('ref') }}</code>
+        <button
+          type="button"
+          class="btn small copy-btn"
+          data-copy="{{ item.get('ref') }}"
+          onclick="copyRef(this)"
+        >
+          Copier
+        </button>
+      </div>
+      {% endif %}
+    </section>
+    {% else %}
+    <section class="evidence-item">
+      <p>{{ item }}</p>
+    </section>
+    {% endif %}
+    {% else %}
+    <p>Aucune preuve.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Retour</h2>
+  <form action="/reports/{{ report.get('id') }}/feedback" method="post" class="feedback-form">
+    <fieldset>
+      <legend>Verdict</legend>
+      <label>
+        <input type="radio" name="verdict" value="useful" required>
+        Utile
+      </label>
+      <label>
+        <input type="radio" name="verdict" value="wrong">
+        Faux
+      </label>
+    </fieldset>
+    <label>
+      Cause racine
+      <input type="text" name="root_cause" value="">
+    </label>
+    <label>
+      Commentaire
+      <textarea name="comment" rows="3"></textarea>
+    </label>
+    <button type="submit" class="btn">Enregistrer le retour</button>
+  </form>
+
+  {% if feedback %}
+  <h3>Retours précédents</h3>
+  <ul class="feedback-list">
+    {% for fb in feedback %}
+    <li>
+      <span class="chip feedback-{{ fb.get('verdict') }}">{{ fb.get('verdict') }}</span>
+      <span class="muted">{{ fb.get('created_at') }}</span>
+      {% if fb.get('root_cause') %}
+      <p>Cause racine : {{ fb.get('root_cause') }}</p>
+      {% endif %}
+      {% if fb.get('comment') %}
+      <p>{{ fb.get('comment') }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

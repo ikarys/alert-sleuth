@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Alertes — alert-sleuth{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Alertes</h1>
+  <div class="actions">
+    <form action="/fetch" method="post" class="inline-form">
+      <button type="submit" class="btn">Récupérer les alertes</button>
+    </form>
+    <form action="/triage" method="post" class="inline-form">
+      <button type="submit" class="btn">Relancer le triage</button>
+    </form>
+  </div>
+</section>
+
+<form class="filters" action="/alerts" method="get">
+  <label>
+    Service
+    <input type="text" name="service" value="{{ service or '' }}">
+  </label>
+  <label>
+    Décision
+    <select name="decision">
+      <option value="" {% if not decision %}selected{% endif %}>Toutes</option>
+      <option value="investigate" {% if decision == 'investigate' %}selected{% endif %}>investigate</option>
+      <option value="watch" {% if decision == 'watch' %}selected{% endif %}>watch</option>
+      <option value="ignore" {% if decision == 'ignore' %}selected{% endif %}>ignore</option>
+    </select>
+  </label>
+  <button type="submit" class="btn">Filtrer</button>
+  <a class="btn secondary" href="/alerts">Réinitialiser</a>
+</form>
+
+{% if clusters %}
+<div class="callout">
+  <strong>Causes communes possibles</strong>
+  <ul>
+    {% for cluster in clusters %}
+    <li>{{ cluster | map(attribute='service') | join(', ') }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Service</th>
+      <th>Env</th>
+      <th>Priorité</th>
+      <th>Count</th>
+      <th>Score</th>
+      <th>Adj</th>
+      <th>Final</th>
+      <th>Décision</th>
+      <th>Raison</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for group in groups %}
+    <tr>
+      <td><code>{{ group.id }}</code></td>
+      <td>{{ group.service }}</td>
+      <td>{{ group.env }}</td>
+      <td><span class="chip priority">{{ group.priority }}</span></td>
+      <td>{{ group.count }}</td>
+      <td>{{ group.score }}</td>
+      <td>{{ group.adjustment }}</td>
+      <td>{{ group.final_score }}</td>
+      <td><span class="chip decision-{{ group.decision }}">{{ group.decision }}</span></td>
+      <td>{{ group.reason }}</td>
+      <td>
+        <form action="/groups/{{ group.id }}/analyze" method="post" class="inline-form">
+          <button type="submit" class="btn small">Analyser</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="11">Aucun groupe</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
