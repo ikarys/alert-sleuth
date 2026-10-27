@@ -9,6 +9,7 @@ dependencies = [
     "jinja2",
     "pyyaml",
     "python-multipart",
+    "mcp>=2.3.0",
 ]
 
 [project.scripts]

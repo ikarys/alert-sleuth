@@ -62,6 +62,12 @@ def _assign_ids(items: list[dict]) -> None:
         item["id"] = f"{prefix}-{counts[prefix]}"
 
 
+def _enabled_sources(settings: Settings) -> list[str]:
+    if settings.demo and not settings.sources:
+        return list(SOURCES.keys())
+    return [source for source in SOURCES if source in settings.sources]
+
+
 def run_all(
     settings: Settings,
     alert: dict,
@@ -72,9 +78,15 @@ def run_all(
     evidence: list[dict] = []
     missing: list[str] = []
     service = str(alert.get("service") or "unknown")
+    enabled = _enabled_sources(settings)
 
     if settings.demo:
         for source in SOURCES:
+            if source not in enabled:
+                if on_step is not None:
+                    on_step(source, "skipped", "désactivé (AIOPS_SOURCES)")
+                continue
+
             started = time.monotonic()
             try:
                 items = _load_demo_evidence(settings.fixtures_dir, source, service)
@@ -98,35 +110,41 @@ def run_all(
         _assign_ids(evidence)
         return evidence, missing
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(SOURCES))
-    futures = {
-        source: executor.submit(SOURCES[source], settings, alert, entry, window)
-        for source in SOURCES
-    }
-
-    try:
-        for source, future in futures.items():
-            started = time.monotonic()
-            try:
-                items = future.result(timeout=settings.collector_timeout + 1)
-            except concurrent.futures.TimeoutError:
-                missing.append(f"{source} (timeout)")
-                if on_step is not None:
-                    on_step(source, "timeout", "délai dépassé")
-                continue
-            except Exception as exc:
-                short = _short_error(exc)
-                missing.append(f"{source} (error: {short})")
-                if on_step is not None:
-                    on_step(source, "error", short)
-                continue
-
-            elapsed = time.monotonic() - started
-            evidence.extend(items)
+    for source in SOURCES:
+        if source not in enabled:
             if on_step is not None:
-                on_step(source, "ok", f"{len(items)} éléments, {elapsed:.1f} s")
-    finally:
-        executor.shutdown(wait=False, cancel_futures=True)
+                on_step(source, "skipped", "désactivé (AIOPS_SOURCES)")
+
+    if enabled:
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(enabled))
+        futures = {
+            source: executor.submit(SOURCES[source], settings, alert, entry, window)
+            for source in enabled
+        }
+
+        try:
+            for source, future in futures.items():
+                started = time.monotonic()
+                try:
+                    items = future.result(timeout=settings.collector_timeout + 1)
+                except concurrent.futures.TimeoutError:
+                    missing.append(f"{source} (timeout)")
+                    if on_step is not None:
+                        on_step(source, "timeout", "délai dépassé")
+                    continue
+                except Exception as exc:
+                    short = _short_error(exc)
+                    missing.append(f"{source} (error: {short})")
+                    if on_step is not None:
+                        on_step(source, "error", short)
+                    continue
+
+                elapsed = time.monotonic() - started
+                evidence.extend(items)
+                if on_step is not None:
+                    on_step(source, "ok", f"{len(items)} éléments, {elapsed:.1f} s")
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     _assign_ids(evidence)
     return evidence, missing

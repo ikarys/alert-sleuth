@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import json
+import os
 import sqlite3
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from aiops import analysis, db, ingest, triage
-from aiops.config import Settings
+from aiops import analysis, collectors, db, ingest, mcp, triage
+from aiops.collectors import elasticsearch as es_collector
+from aiops.collectors import victoriametrics as vm_collector
+from aiops.config import Settings, load
 from aiops.web.app import create_app
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -302,3 +307,152 @@ def test_web_pages_and_feedback(tmp_path: Path, monkeypatch) -> None:
         follow_redirects=False,
     )
     assert foreign.status_code == 403
+
+
+def test_load_dotenv(tmp_path: Path, monkeypatch) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "# comment\n"
+        "\n"
+        "export AIOPS_DOTENV_A=1\n"
+        'AIOPS_DOTENV_B="quoted"\n'
+        "AIOPS_DOTENV_C=\n"
+        "AIOPS_DOTENV_EXISTING=from_file\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("AIOPS_ENV_FILE", str(env_file))
+    monkeypatch.setenv("AIOPS_DOTENV_EXISTING", "real")
+    monkeypatch.delenv("AIOPS_DOTENV_A", raising=False)
+    monkeypatch.delenv("AIOPS_DOTENV_B", raising=False)
+    monkeypatch.delenv("AIOPS_DOTENV_C", raising=False)
+
+    load()
+
+    assert os.environ["AIOPS_DOTENV_A"] == "1"
+    assert os.environ["AIOPS_DOTENV_B"] == "quoted"
+    assert os.environ["AIOPS_DOTENV_C"] == ""
+    assert os.environ["AIOPS_DOTENV_EXISTING"] == "real"
+
+
+def test_run_all_respects_sources(tmp_path: Path) -> None:
+    settings = Settings(
+        db_path=str(tmp_path / "t.db"),
+        demo=True,
+        catalog_path=str(REPO_ROOT / "catalog" / "services.yaml"),
+        skills_dir=str(REPO_ROOT / "skills"),
+        fixtures_dir=str(REPO_ROOT / "tests" / "fixtures" / "demo"),
+        llm_url="http://llm.test/v1",
+        llm_model="test-model",
+        sources=("victoriametrics",),
+    )
+
+    steps: list[tuple[str, str, str]] = []
+
+    def on_step(name: str, status: str, detail: str) -> None:
+        steps.append((name, status, detail))
+
+    evidence, missing = collectors.run_all(
+        settings,
+        {"service": "checkout"},
+        {},
+        {},
+        on_step=on_step,
+    )
+
+    assert missing == []
+    assert evidence
+    assert all(item["id"].startswith("met-") for item in evidence)
+    assert any(name == "argocd" and status == "skipped" for name, status, _ in steps)
+
+
+def test_vm_mcp_mode(tmp_path: Path, monkeypatch) -> None:
+    settings = Settings(
+        db_path=str(tmp_path / "t.db"),
+        demo=False,
+        vm_mode="mcp",
+        mcp_url="http://x/mcp/",
+    )
+
+    window = {
+        "t": "2026-02-14T09:40:00Z",
+        "start": "2026-02-14T09:10:00Z",
+        "end": "2026-02-14T09:50:00Z",
+        "changes_start": "2026-02-14T07:40:00Z",
+    }
+
+    start_epoch = datetime(2026, 2, 14, 9, 10, tzinfo=timezone.utc).timestamp()
+    payload = {
+        "status": "success",
+        "data": {
+            "resultType": "matrix",
+            "result": [
+                {
+                    "metric": {},
+                    "values": [
+                        [start_epoch - 60, "0.1"],
+                        [start_epoch, "0.1"],
+                        [start_epoch + 60, "5.0"],
+                    ],
+                }
+            ],
+        },
+    }
+
+    monkeypatch.setattr(
+        "aiops.mcp.call_tool",
+        lambda settings, name, arguments: [json.dumps(payload)],
+    )
+
+    items = vm_collector.collect(
+        settings,
+        {"service": "checkout"},
+        {"victoriametrics": {"labels": {"service": "checkout"}}},
+        window,
+    )
+
+    assert items
+    assert any("peak" in item["text"] for item in items)
+
+
+def test_es_mcp_mode(tmp_path: Path, monkeypatch) -> None:
+    settings = Settings(
+        db_path=str(tmp_path / "t.db"),
+        demo=False,
+        es_mode="mcp",
+        mcp_url="http://x/mcp/",
+    )
+
+    entry = {
+        "elasticsearch": {
+            "index_pattern": "logs-*",
+            "query": "service:checkout",
+        }
+    }
+    window = {
+        "t": "2026-02-14T09:40:00Z",
+        "start": "2026-02-14T09:10:00Z",
+        "end": "2026-02-14T09:50:00Z",
+        "changes_start": "2026-02-14T07:40:00Z",
+    }
+
+    hits = [
+        {
+            "_source": {
+                "@timestamp": "2026-02-14T09:40:00Z",
+                "message": "Timeout after 1234 ms",
+            }
+        }
+        for _ in range(3)
+    ]
+    payload = {"hits": {"hits": hits}}
+
+    monkeypatch.setattr(
+        "aiops.mcp.call_tool",
+        lambda settings, name, arguments: ["Total results: 3", json.dumps(payload)],
+    )
+
+    items = es_collector.collect(settings, {"service": "checkout"}, entry, window)
+
+    assert len(items) == 1
+    assert items[0]["text"] == "3x Timeout after <*> ms"

@@ -5,6 +5,7 @@ import json
 import re
 import urllib.request
 
+from aiops import mcp
 from aiops.config import Settings
 
 
@@ -56,6 +57,46 @@ def _message(source: object) -> str:
     return json.dumps(source, ensure_ascii=False)
 
 
+def _sources_from_payload(payload: object) -> list[dict] | None:
+    if isinstance(payload, dict):
+        hits_wrapper = payload.get("hits")
+        if isinstance(hits_wrapper, dict):
+            hits = hits_wrapper.get("hits")
+            if isinstance(hits, list):
+                sources: list[dict] = []
+                for hit in hits:
+                    if not isinstance(hit, dict):
+                        continue
+                    source = hit.get("_source", {})
+                    if isinstance(source, dict):
+                        sources.append(source)
+                return sources
+        return None
+
+    if isinstance(payload, list):
+        sources = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            if "_source" in item:
+                source = item["_source"]
+                if isinstance(source, dict):
+                    sources.append(source)
+            else:
+                sources.append(item)
+        return sources if sources else None
+
+    return None
+
+
+def _extract_hits(payloads: list[str]) -> list[dict]:
+    for payload in mcp.parse_json_texts(payloads):
+        sources = _sources_from_payload(payload)
+        if sources is not None:
+            return sources
+    return []
+
+
 def collect(settings: Settings, alert: dict, entry: dict, window: dict) -> list[dict]:
     es = entry.get("elasticsearch") if isinstance(entry, dict) else None
     if not isinstance(es, dict):
@@ -63,14 +104,20 @@ def collect(settings: Settings, alert: dict, entry: dict, window: dict) -> list[
 
     index_pattern = es.get("index_pattern")
     query = es.get("query")
-    if not settings.es_url or not index_pattern or not query:
+    if not index_pattern or not query:
         raise RuntimeError("not configured")
+
+    if settings.es_mode == "http":
+        if not settings.es_url:
+            raise RuntimeError("not configured")
+    else:
+        if not settings.mcp_url:
+            raise RuntimeError("not configured")
 
     query_string = (
         f"({query}) AND (level:(error OR warn OR warning OR fatal) "
         "OR log.level:(error OR warn OR warning OR fatal))"
     )
-    url = f"{settings.es_url.rstrip('/')}/{index_pattern}/_search"
     payload = {
         "size": 500,
         "sort": [{"@timestamp": {"order": "asc"}}],
@@ -91,20 +138,36 @@ def collect(settings: Settings, alert: dict, entry: dict, window: dict) -> list[
         },
     }
 
-    data = _post_json(url, payload, settings, settings.es_user, settings.es_password)
-    hits_wrapper = data.get("hits")
-    if not isinstance(hits_wrapper, dict):
-        hits_wrapper = {}
-    hits = hits_wrapper.get("hits")
-    if not isinstance(hits, list):
-        hits = []
+    if settings.es_mode == "mcp":
+        payloads = mcp.call_tool(
+            settings,
+            settings.es_mcp_tool,
+            {
+                "index": index_pattern,
+                "query_body": payload,
+            },
+        )
+        sources = _extract_hits(payloads)
+    else:
+        url = f"{settings.es_url.rstrip('/')}/{index_pattern}/_search"
+        data = _post_json(url, payload, settings, settings.es_user, settings.es_password)
+        hits_wrapper = data.get("hits")
+        if not isinstance(hits_wrapper, dict):
+            hits_wrapper = {}
+        hits = hits_wrapper.get("hits")
+        if not isinstance(hits, list):
+            hits = []
+
+        sources = []
+        for hit in hits:
+            if not isinstance(hit, dict):
+                continue
+            source = hit.get("_source", {})
+            if isinstance(source, dict):
+                sources.append(source)
 
     groups: dict[str, dict[str, object]] = {}
-    for hit in hits:
-        if not isinstance(hit, dict):
-            continue
-
-        source = hit.get("_source", {})
+    for source in sources:
         ts = source.get("@timestamp") if isinstance(source, dict) else None
         if not ts:
             ts = window.get("t", "")

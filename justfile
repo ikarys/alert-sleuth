@@ -1,5 +1,3 @@
-set dotenv-load
-
 # Show available recipes.
 default:
     just --list
@@ -26,9 +24,17 @@ fetch:
 triage:
     uv run aiops triage
 
+# List triage groups.
+list:
+    uv run aiops list
+
 # Analyze a group.
 analyze group:
     uv run aiops analyze {{group}}
+
+# Collect evidence for a triaged group.
+collect group:
+    uv run aiops collect {{group}}
 
 # Show a report.
 report id:
@@ -37,6 +43,10 @@ report id:
 # Show data quality scorecard.
 quality:
     uv run aiops quality
+
+# List MCP tools exposed by the LiteLLM proxy.
+mcp-tools:
+    uv run aiops mcp-tools
 
 # Run tests.
 test *args:

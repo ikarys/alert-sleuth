@@ -24,7 +24,15 @@ just test         # tests
 just              # liste des recettes
 ```
 
-Configuration par variables d'environnement (ou fichier `.env`) : `OPSGENIE_API_KEY`, `ES_URL`/`ES_USER`/`ES_PASSWORD`, `VM_URL`, `ARGOCD_SERVER`/`ARGOCD_AUTH_TOKEN`, session `az login`, `AIOPS_LLM_URL`/`AIOPS_LLM_MODEL`, `AIOPS_DB`, `AIOPS_DEMO=1`. Voir `aiops/config.py`.
+Configuration : `cp .env.example .env` puis remplir. Le fichier `.env` (ignoré par git) est chargé au démarrage ; une valeur vide signifie « valeur par défaut », et les vraies variables d'environnement l'emportent.
+
+Mise en service progressive sur l'infra réelle :
+
+1. **Alertes seules** : renseigner `OPSGENIE_API_KEY` (clé avec le seul droit `Read`), laisser `AIOPS_SOURCES` vide, puis `just fetch`, `just triage`, `just list`, `just web`.
+2. **VictoriaMetrics et Elasticsearch via les MCP de LiteLLM** : renseigner `LITELLM_MCP_URL` et `LITELLM_API_KEY`, lancer `just mcp-tools` pour lire les noms exacts des outils (LiteLLM les préfixe par l'alias du serveur), les reporter dans `VM_MCP_TOOL` et `ES_MCP_TOOL`, puis `AIOPS_SOURCES=victoriametrics,elasticsearch` et tester la collecte sans LLM avec `just collect <groupe>`.
+3. **ArgoCD et Azure CLI** (plus tard) : ajouter `argocd,azure` à `AIOPS_SOURCES`, avec un compte ArgoCD en lecture seule et une session `az login` au rôle `Reader`.
+
+Une source non listée dans `AIOPS_SOURCES` n'est pas interrogée et n'est pas comptée comme preuve manquante.
 
 ## Phases
 

@@ -3,10 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import timedelta
 from typing import Any
 
-from aiops import analysis, catalog, db, ingest, quality, triage
-from aiops.config import load
+from aiops import analysis, catalog, collectors, db, ingest, mcp, quality, triage
+from aiops.config import Settings, load
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -28,11 +29,17 @@ def main(argv: list[str] | None = None) -> int:
     analyze_parser = subparsers.add_parser("analyze", help="Analyser un groupe")
     analyze_parser.add_argument("group_id", help="Identifiant du groupe")
 
+    collect_parser = subparsers.add_parser("collect", help="Collecter les preuves d'un groupe")
+    collect_parser.add_argument("group_id", help="Identifiant du groupe")
+    collect_parser.add_argument("--json", action="store_true", help="Afficher en JSON")
+
     report_parser = subparsers.add_parser("report", help="Afficher un rapport")
     report_parser.add_argument("report_id", help="Identifiant du rapport")
     report_parser.add_argument("--json", action="store_true", help="Afficher le rapport en JSON")
 
     subparsers.add_parser("quality", help="Afficher la qualité des données")
+
+    subparsers.add_parser("mcp-tools", help="Lister les outils MCP")
 
     web_parser = subparsers.add_parser("web", help="Démarrer le serveur web")
     web_parser.add_argument("--host", default="127.0.0.1", help="Hôte d'écoute")
@@ -67,6 +74,9 @@ def main(argv: list[str] | None = None) -> int:
             report_id = analysis.analyze(settings, conn, args.group_id, on_step=on_step)
             print(f"Rapport {report_id}")
 
+        elif args.command == "collect":
+            _run_collect(settings, conn, args.group_id, args.json)
+
         elif args.command == "report":
             try:
                 report_id = int(args.report_id)
@@ -89,6 +99,10 @@ def main(argv: list[str] | None = None) -> int:
             rows = quality.scorecard(conn, entries)
             _print_quality(rows)
 
+        elif args.command == "mcp-tools":
+            rows = mcp.list_tools(settings)
+            _print_mcp_tools(rows)
+
         elif args.command == "web":
             import uvicorn
 
@@ -107,6 +121,75 @@ def main(argv: list[str] | None = None) -> int:
         conn.close()
 
     return 0
+
+
+def _priority_rank(priority: object) -> int:
+    if isinstance(priority, str):
+        try:
+            return int(priority[1:])
+        except ValueError:
+            pass
+    return 99
+
+
+def _window_for_group(group: dict, settings: Settings) -> dict:
+    first_seen = group.get("first_seen")
+    if not first_seen:
+        raise ValueError("first_seen manquant")
+
+    t = db.parse_ts(first_seen)
+    start = t - timedelta(minutes=settings.window_before_min)
+    end = t + timedelta(minutes=settings.window_after_min)
+    changes_start = t - timedelta(hours=settings.changes_lookback_h)
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+
+    return {
+        "t": first_seen,
+        "start": start.strftime(fmt),
+        "end": end.strftime(fmt),
+        "changes_start": changes_start.strftime(fmt),
+    }
+
+
+def _run_collect(settings: Settings, conn: Any, group_id: str, as_json: bool) -> None:
+    group = db.get_group(conn, group_id)
+    if group is None:
+        raise ValueError(f"groupe {group_id} introuvable")
+
+    alert = None
+    for alert_id in group.get("alert_ids", []):
+        candidate = db.get_alert(conn, alert_id)
+        if candidate is None:
+            continue
+        if alert is None or _priority_rank(candidate.get("priority")) < _priority_rank(
+            alert.get("priority")
+        ):
+            alert = candidate
+
+    if alert is None:
+        raise ValueError("aucune alerte dans le groupe")
+
+    entry = catalog.for_service(catalog.load(settings.catalog_path), group.get("service")) or {}
+    window = _window_for_group(group, settings)
+
+    def on_step(name: str, status: str, detail: str) -> None:
+        print(f"[{status}] {name} : {detail}")
+
+    evidence, missing = collectors.run_all(settings, alert, entry, window, on_step=on_step)
+
+    if as_json:
+        print(json.dumps({"evidence": evidence, "missing": missing}, ensure_ascii=False, indent=2))
+        return
+
+    if not evidence:
+        print("Aucune preuve")
+    for item in evidence:
+        print(f"{item.get('id')}  {item.get('source')}  {item.get('ts')}  {item.get('text')}")
+
+    if missing:
+        print("Manquant : " + ", ".join(missing))
+    else:
+        print("Aucun élément manquant")
 
 
 def _print_groups(groups: list[dict]) -> None:
@@ -167,6 +250,23 @@ def _print_quality(rows: list[dict]) -> None:
             ]
         )
 
+    _print_table(headers, table_rows)
+
+
+def _print_mcp_tools(rows: list[dict]) -> None:
+    if not rows:
+        print("Aucun outil")
+        return
+
+    headers = ["name", "params", "description"]
+    table_rows = [
+        [
+            row.get("name"),
+            ", ".join(row.get("params", [])),
+            row.get("description"),
+        ]
+        for row in rows
+    ]
     _print_table(headers, table_rows)
 
 
