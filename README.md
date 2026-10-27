@@ -1,8 +1,8 @@
-# sre : Assistant AIOps en lecture seule
+# alert-sleuth : Assistant AIOps en lecture seule
 
 Statut : phase de conception. Seule la documentation existe ; pas encore de code.
 
-`sre` est un assistant AIOps en lecture seule pour une équipe SRE. Il réduit la fatigue d'alerte et accélère l'investigation manuelle en transformant les alertes brutes en rapports d'incident classés et étayés par des preuves. Il ingère les alertes, les regroupe et les évalue, collecte des preuves corrélées et produit des rapports structurés qui citent les preuves utilisées.
+`alert-sleuth` est un assistant AIOps en lecture seule pour une équipe SRE. Il réduit la fatigue d'alerte et accélère l'investigation manuelle en transformant les alertes brutes en rapports d'incident classés et étayés par des preuves. Il ingère les alertes, les regroupe et les évalue, collecte des preuves corrélées et produit des rapports structurés qui citent les preuves utilisées.
 
 ```mermaid
 flowchart LR
