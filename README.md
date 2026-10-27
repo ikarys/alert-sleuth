@@ -89,6 +89,7 @@ aiops/
 catalog/
   services.yaml
 reports/
+skills/                # prompts LLM (SKILL.md) par étape
 tests/
   fixtures/
 docs/

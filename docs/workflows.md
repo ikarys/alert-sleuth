@@ -184,6 +184,8 @@ Le feedback humain est stocké avec chaque rapport. Les métriques de qualité m
 
 ## Schéma du rapport
 
+Schéma de référence complet : [skills/incident-analysis/SKILL.md](../skills/incident-analysis/SKILL.md). Exemple simplifié :
+
 ```json
 {
   "alert_id": "ops-123",
