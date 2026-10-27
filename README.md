@@ -69,7 +69,7 @@ aiops report <id>
 
 ### v3
 
-- Interface web pour la liste d'alertes, le triage, le rapport et le feedback.
+- Interface web (FastAPI + Jinja + htmx, sans intelligence) pour la liste d'alertes, le triage, le rapport et le feedback : voir [docs/ui.md](docs/ui.md).
 - Clustering d'alertes et groupement d'incidents.
 - Comparaison de rapports entre prompts et modèles.
 - Jeu de données de feedback étiqueté.
@@ -86,6 +86,7 @@ aiops/
   collectors/
   analysis/
   storage/
+  web/                 # couche UI : routes FastAPI + templates Jinja
 catalog/
   services.yaml
 reports/
@@ -95,9 +96,12 @@ tests/
 docs/
   workflows.md
   data-recommendations.md
+  ui.md
+  mockup/index.html
 ```
 
 ## Documentation
 
 - [Flux de travail](docs/workflows.md)
 - [Recommandations de données](docs/data-recommendations.md)
+- [Interface web](docs/ui.md) et sa [maquette](docs/mockup/index.html)
